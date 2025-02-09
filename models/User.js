@@ -1,56 +1,68 @@
-const crypto = require('crypto');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const randomize = require('randomatic');
+const crypto = require("crypto");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please add a name'],
+const UserSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please add a name"],
+    },
+    email: {
+      type: String,
+      required: [true, "Please add an email"],
+      unique: true,
+      match: [
+        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        "Please add a valid email",
+      ],
+    },
+    phone: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      minlength: 6,
+      select: false,
+    },
+    birthdate: {
+      type: Date,
+      required: true,
+    },
+    weight: {
+      type: Number,
+      min: 0,
+    },
+    sex: {
+      type: String,
+      enum: ["Male", "Female"],
+      required: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    photo: {
+      type: String, // Store URL or file path
+      trim: true,
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+    confirmEmailToken: String,
+    isEmailConfirmed: {
+      type: Boolean,
+      default: false,
+    },
   },
-  email: {
-    type: String,
-    required: [true, 'Please add an email'],
-    unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      'Please add a valid email',
-    ],
-  },
-  role: {
-    type: String,
-    enum: ['user', 'publisher'],
-    default: 'user',
-  },
-  password: {
-    type: String,
-    required: [true, 'Please add a password'],
-    minlength: 6,
-    select: false,
-  },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  confirmEmailToken: String,
-  isEmailConfirmed: {
-    type: Boolean,
-    default: false,
-  },
-  twoFactorCode: String,
-  twoFactorCodeExpire: Date,
-  twoFactorEnable: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
 // Encrypt password using bcrypt
-UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     next();
   }
 
@@ -81,13 +93,13 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 // Generate and hash password token
 UserSchema.methods.getResetPasswordToken = function () {
   // Generate token
-  const resetToken = crypto.randomBytes(20).toString('hex');
+  const resetToken = crypto.randomBytes(20).toString("hex");
 
   // Hash token and set to resetPasswordToken field
   this.resetPasswordToken = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(resetToken)
-    .digest('hex');
+    .digest("hex");
 
   // Set expire
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
@@ -98,16 +110,16 @@ UserSchema.methods.getResetPasswordToken = function () {
 // Generate email confirm token
 UserSchema.methods.generateEmailConfirmToken = function (next) {
   // email confirmation token
-  const confirmationToken = crypto.randomBytes(20).toString('hex');
+  const confirmationToken = crypto.randomBytes(20).toString("hex");
 
   this.confirmEmailToken = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(confirmationToken)
-    .digest('hex');
+    .digest("hex");
 
-  const confirmTokenExtend = crypto.randomBytes(100).toString('hex');
+  const confirmTokenExtend = crypto.randomBytes(100).toString("hex");
   const confirmTokenCombined = `${confirmationToken}.${confirmTokenExtend}`;
   return confirmTokenCombined;
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model("User", UserSchema);
