@@ -1,0 +1,32 @@
+{
+  "name": "appointment_backend",
+  "version": "1.0.0",
+  "description": "hospital appointment website",
+  "main": "server.js",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "colors": "^1.4.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.10.0"
+  },
+  "scripts": {
+    "dev": "nodemon server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rumonkh0/appointment_backend.git"
+  },
+  "author": "rumonkh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rumonkh0/appointment_backend/issues"
+  },
+  "homepage": "https://github.com/rumonkh0/appointment_backend#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
