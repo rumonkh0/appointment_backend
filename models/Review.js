@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
 
 const ReviewSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    trim: true,
-    required: [true, 'Please add a title for the review'],
-    maxlength: 100
-  },
   text: {
     type: String,
     required: [true, 'Please add some text']
@@ -31,20 +25,20 @@ const ReviewSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   }
-});
+},{timestamps: true});
 
-// Prevent user from submitting more than one review per bootcamp
+// Prevent user from submitting more than one review per doctor
 ReviewSchema.index({ doctor: 1, user: 1 }, { unique: true });
 
 // Static method to get avg rating and save
-ReviewSchema.statics.getAverageRating = async function(bootcampId) {
+ReviewSchema.statics.getAverageRating = async function(doctorId) {
   const obj = await this.aggregate([
     {
-      $match: { bootcamp: bootcampId }
+      $match: { doctor: doctorId }
     },
     {
       $group: {
-        _id: '$bootcamp',
+        _id: '$doctor',
         averageRating: { $avg: '$rating' }
       }
     }
@@ -52,11 +46,11 @@ ReviewSchema.statics.getAverageRating = async function(bootcampId) {
 
  try {
     if (obj[0]) {
-      await this.model("Bootcamp").findByIdAndUpdate(bootcampId, {
+      await this.model("Doctor").findByIdAndUpdate(doctorId, {
         averageRating: obj[0].averageRating.toFixed(1),
       });
     } else {
-      await this.model("Bootcamp").findByIdAndUpdate(bootcampId, {
+      await this.model("Doctor").findByIdAndUpdate(doctorId, {
         averageRating: undefined,
       });
     }
@@ -67,12 +61,12 @@ ReviewSchema.statics.getAverageRating = async function(bootcampId) {
 
 // Call getAverageCost after save
 ReviewSchema.post('save', async function() {
-  await this.constructor.getAverageRating(this.bootcamp);
+  await this.constructor.getAverageRating(this.doctor);
 });
 
 // Call getAverageCost before remove
 ReviewSchema.post('remove', async function() {
-  await this.constructor.getAverageRating(this.bootcamp);
+  await this.constructor.getAverageRating(this.doctor);
 });
 
 module.exports = mongoose.model('Review', ReviewSchema);

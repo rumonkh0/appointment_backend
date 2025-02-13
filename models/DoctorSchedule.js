@@ -20,17 +20,19 @@ const doctorScheduleSchema = new mongoose.Schema(
             "Saturday",
             "Sunday",
           ],
-          required: true,        },
+          required: true,
+        },
         timeSlots: [
           {
             slot: {
-              type: String, // Example: "10:00 AM - 11:00 AM"
+              type: String,
               required: true,
             },
             maxPatients: {
               type: Number,
               required: true,
               min: 1,
+              max:10
             },
           },
         ],

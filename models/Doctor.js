@@ -48,7 +48,28 @@ const DoctorSchema = new mongoose.Schema(
       type: [String], // Array of specializations
       required: true,
     },
+    education: [
+      {
+        degree: {
+          type: String,
+          required: true,
+        },
+        institution: {
+          type: String,
+          required: true,
+        },
+        year: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
   },
+
   {
     timestamps: true,
     // toJSON: { virtuals: true }, toObject: { virtuals: true }

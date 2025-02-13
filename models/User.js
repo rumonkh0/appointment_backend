@@ -30,7 +30,6 @@ const UserSchema = new mongoose.Schema(
     },
     birthdate: {
       type: Date,
-      required: true,
     },
     weight: {
       type: Number,
@@ -39,7 +38,6 @@ const UserSchema = new mongoose.Schema(
     sex: {
       type: String,
       enum: ["Male", "Female"],
-      required: true,
     },
     address: {
       type: String,

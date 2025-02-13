@@ -1,5 +1,6 @@
 const Doctor = require("../models/Doctor");
 const asyncHandler = require("../middleware/async");
+const ErrorResponse = require("../utils/errorResponse");
 
 // @desc      Get all doctors
 // @route     GET /api/v1/doctors
@@ -37,6 +38,28 @@ exports.createDoctor = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc      Edit doctor
+// @route     PUT /api/v1/doctors
+// @access    Private
+exports.editDoctor = asyncHandler(async (req, res, next) => {
+  let doctor = await Doctor.findById(req.params.id);
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(201).json({
+    success: true,
+    data: doctor,
+  });
+});
+
 // @desc      Delete doctor
 // @route     DELETE /api/v1/doctors/:id
 // @access    Private
@@ -49,7 +72,7 @@ exports.deleteDoctor = asyncHandler(async (req, res, next) => {
     );
   }
 
-  await doctor.deleteOne()
+  await doctor.deleteOne();
 
   res
     .status(200)

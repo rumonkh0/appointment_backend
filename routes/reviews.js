@@ -1,34 +1,34 @@
-const express = require('express');
+const express = require("express");
 const {
   getReviews,
   getReview,
   addReview,
   updateReview,
-  deleteReview
-} = require('../controllers/reviews');
+  deleteReview,
+} = require("../controllers/reviews");
 
-const Review = require('../models/Review');
+const Review = require("../models/Review");
 
 const router = express.Router({ mergeParams: true });
 
-const advancedResults = require('../middleware/advancedResults');
-const { protect, authorize } = require('../middleware/auth');
+const advancedResults = require("../middleware/advancedResults");
+const { protect, authorize } = require("../middleware/auth");
 
 router
-  .route('/')
+  .route("/")
   .get(
     advancedResults(Review, {
-      path: 'bootcamp',
-      select: 'name description'
+      path: "doctor",
+      select: "_id name",
     }),
     getReviews
   )
-  .post(protect, authorize('user', 'admin'), addReview);
+  .post(protect, addReview);
 
 router
-  .route('/:id')
+  .route("/:id")
   .get(getReview)
-  .put(protect, authorize('user', 'admin'), updateReview)
-  .delete(protect, authorize('user', 'admin'), deleteReview);
+  .put(protect, updateReview)
+  .delete(protect, deleteReview);
 
 module.exports = router;

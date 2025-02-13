@@ -15,7 +15,6 @@ exports.register = asyncHandler(async (req, res, next) => {
     name,
     email,
     password,
-    role,
   });
 
   // grab token and send to email
@@ -24,7 +23,7 @@ exports.register = asyncHandler(async (req, res, next) => {
   // Create reset url
   const confirmEmailURL = `${req.protocol}://${req.get(
     'host',
-  )}/api/v1/auth/confirmemail?token=${confirmEmailToken}`;
+  )}/auth/confirmemail?token=${confirmEmailToken}`;
 
   const message = `You are receiving this email because you need to confirm your email address. Please make a GET request to: \n\n ${confirmEmailURL}`;
 
