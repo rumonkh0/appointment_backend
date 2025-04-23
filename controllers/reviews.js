@@ -5,20 +5,21 @@ const Doctor = require("../models/Doctor");
 
 // @desc      Get reviews
 // @route     GET /api/v1/reviews
-// @route     GET /api/v1/Doctors/:DoctorId/reviews
+// @route     GET /api/v1/Doctors/:doctorId/reviews
 // @access    Public
 exports.getReviews = asyncHandler(async (req, res, next) => {
-  if (req.params.DoctorId) {
-    const reviews = await Review.find({ Doctor: req.params.doctorId });
+  // console.log(req.params.doctorId);
+  // if (req.params.doctorId) {
+  //   const reviews = await Review.find({ doctor: req.params.doctorId });
 
-    return res.status(200).json({
-      success: true,
-      count: reviews.length,
-      data: reviews,
-    });
-  } else {
-    res.status(200).json(res.advancedResults);
-  }
+  //   return res.status(200).json({
+  //     success: true,
+  //     count: reviews.length,
+  //     data: reviews,
+  //   });
+  // } else {
+  res.status(200).json(res.advancedResults);
+  // }
 });
 
 // @desc      Get single review
@@ -43,7 +44,7 @@ exports.getReview = asyncHandler(async (req, res, next) => {
 });
 
 // @desc      Add review
-// @route     POST /api/v1/Doctors/:DoctorId/reviews
+// @route     POST /api/v1/Doctors/:doctorId/reviews
 // @access    Private
 exports.addReview = asyncHandler(async (req, res, next) => {
   req.body.user = req.user.id;

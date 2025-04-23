@@ -12,7 +12,7 @@ const DoctorSchema = new mongoose.Schema(
     },
     slug: String,
     degree: {
-      type: String,
+      type: [String],
       required: [true, "Please add a degree"],
     },
     about: {
@@ -62,6 +62,28 @@ const DoctorSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+      },
+    ],
+    chamber: [
+      {
+        name: { type: String, required: true },
+        address: { type: String, required: true },
+        contact: { type: String, required: true },
+        availability: { type: String, required: true },
+      },
+    ],
+
+    services: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
+
+    work_experience: [
+      {
+        title: { type: String, required: true },
+        institution: { type: String, required: true },
       },
     ],
     averageRating: {
