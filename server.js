@@ -47,7 +47,7 @@ app.use("/doctors", doctors);
 app.use("/appointments", appointments);
 app.use("/reviews", reviews);
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("Welcome to Doctor hospital appointment API");
 });
 // Error middleware
 app.use(errorHandler);
