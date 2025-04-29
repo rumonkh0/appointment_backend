@@ -8,11 +8,13 @@ const UserSchema = new mongoose.Schema(
     name: {
       type: String,
       required: [true, "Please add a name"],
+      trim: true,
     },
     email: {
       type: String,
       required: [true, "Please add an email"],
       unique: true,
+      trim: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         "Please add a valid email",
@@ -20,32 +22,38 @@ const UserSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
+      required: [true, "Please add a phone number"],
       unique: true,
       trim: true,
+    },
+    address: {
+      type: String,
+      required: [true, "Please add an address"],
+      trim: true,
+    },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      required: [true, "Please specify gender"],
+    },
+    birthDate: {
+      type: Date,
+      required: [true, "Please add birth date"],
     },
     password: {
       type: String,
       minlength: 6,
       select: false,
     },
-    birthdate: {
-      type: Date,
-    },
-    weight: {
-      type: Number,
-      min: 0,
-    },
-    sex: {
-      type: String,
-      enum: ["Male", "Female"],
-    },
-    address: {
-      type: String,
-      trim: true,
-    },
     photo: {
       type: String, // Store URL or file path
+      default: "default-avatar.jpg",
       trim: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -54,9 +62,36 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    lastLogin: {
+      type: Date,
+      default: Date.now,
+    },
+    active: {
+      type: Boolean,
+      default: true,
+    },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+// Create virtual for age calculation
+UserSchema.virtual('age').get(function() {
+  if (!this.birthDate) return null;
+  const today = new Date();
+  const birthDate = new Date(this.birthDate);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+});
 
 // Encrypt password using bcrypt
 UserSchema.pre("save", async function (next) {
@@ -118,6 +153,12 @@ UserSchema.methods.generateEmailConfirmToken = function (next) {
   const confirmTokenExtend = crypto.randomBytes(100).toString("hex");
   const confirmTokenCombined = `${confirmationToken}.${confirmTokenExtend}`;
   return confirmTokenCombined;
+};
+
+// Update last login timestamp
+UserSchema.methods.updateLastLogin = async function() {
+  this.lastLogin = Date.now();
+  await this.save();
 };
 
 module.exports = mongoose.model("User", UserSchema);

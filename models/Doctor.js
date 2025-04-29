@@ -10,139 +10,252 @@ const DoctorSchema = new mongoose.Schema(
       trim: true,
       maxlength: [50, "Name can not be more than 50 characters"],
     },
-    gender: {
-      type: String,
-      enum: ["male", "female"],
-      default: "prefer-not-to-say",
-    },
     slug: String,
-    degree: {
-      type: [String],
-      required: [true, "Please add a degree"],
-    },
-    about: {
+    specialization: {
       type: String,
-      required: [true, "Please add a description"],
-      maxlength: [500, "Description can not be more than 500 characters"],
+      required: [true, "Please add a specialization"],
+      trim: true,
     },
-    fee: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    phone: {
-      type: String,
-      maxlength: [20, "Phone number can not be longer than 20 characters"],
-    },
-    email: {
-      type: String,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please add a valid email",
-      ],
-    },
-    address: {
-      type: String,
-      required: [true, "Please add an address"],
-    },
-    photo: {
-      type: String,
-      default: "no-photo.jpg",
-    },
-    specialist: {
-      type: [String], // Array of specializations
-      required: true,
-    },
-    education: [
-      {
-        degree: {
-          type: String,
-          required: true,
-        },
-        institution: {
-          type: String,
-          required: true,
-        },
-        year: {
-          type: Number,
-          required: true,
-        },
-      },
-    ],
-    chamber: [
-      {
-        name: { type: String, required: true },
-        address: { type: String, required: true },
-        contact: { type: String, required: true },
-        availability: { type: String, required: true },
-      },
-    ],
-
-    services: [
-      {
+    qualifications: [{
+      degree: {
         type: String,
         required: true,
+        trim: true
       },
-    ],
-
-    work_experience: [
-      {
-        title: { type: String, required: true },
-        institution: { type: String, required: true },
+      institution: {
+        type: String,
+        required: true,
+        trim: true
       },
-    ],
-    averageRating: {
+      year: {
+        type: Number
+      }
+    }],
+    education: {
+      type: String,
+      required: [true, "Please add education details"],
+      trim: true,
+    },
+    experience: {
+      years: {
+        type: Number,
+        required: [true, "Please specify years of experience"],
+        min: 0
+      },
+      details: {
+        type: String,
+        required: [true, "Please add experience details"],
+        trim: true,
+      }
+    },
+    hospital: {
+      name: {
+        type: String,
+        required: [true, "Please add hospital name"],
+        trim: true,
+      },
+      address: {
+        type: String,
+        trim: true,
+      }
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+      },
+      coordinates: {
+        type: [Number],
+      },
+      formattedAddress: String,
+      street: String,
+      city: String,
+      state: String,
+      zipcode: String,
+      country: String
+    },
+    contactInfo: {
+      email: {
+        type: String,
+        match: [
+          /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+          'Please add a valid email'
+        ],
+        trim: true,
+      },
+      phone: {
+        type: String,
+        required: [true, "Please add a contact phone number"],
+        trim: true,
+      },
+      website: {
+        type: String,
+        trim: true,
+      },
+      socialMedia: {
+        linkedin: String,
+        twitter: String,
+        facebook: String
+      }
+    },
+    workingHours: {
+      from: {
+        type: String,
+        required: [true, "Please specify starting time"]
+      },
+      to: {
+        type: String,
+        required: [true, "Please specify ending time"]
+      },
+      workingDays: {
+        type: [String],
+        required: [true, "Please specify working days"],
+        enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      slotDuration: {
+        type: Number,
+        default: 30, // Duration in minutes
+        min: 5,
+        max: 120
+      }
+    },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    reviews: {
       type: Number,
       default: 0,
     },
+    fee: {
+      consultation: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      followUp: {
+        type: Number,
+        min: 0,
+      }
+    },
+    languages: {
+      type: [String],
+      default: ["English"]
+    },
+    available: {
+      type: Boolean,
+      default: true,
+    },
+    image: {
+      type: String,
+      default: "no-photo.jpg",
+    },
+    description: {
+      type: String,
+      maxlength: [500, "Description cannot be more than 500 characters"],
+      trim: true,
+    },
+    services: {
+      type: [String],
+      trim: true,
+    },
+    acceptsInsurance: {
+      type: Boolean,
+      default: false
+    },
+    insuranceProviders: {
+      type: [String]
+    },
+    averageConsultationTime: {
+      type: Number, // in minutes
+      default: 30
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
+    }
   },
-
   {
     timestamps: true,
-    // toJSON: { virtuals: true }, toObject: { virtuals: true }
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-// Create bootcamp slug from the name
+// Create doctor slug from the name
 DoctorSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
   next();
 });
 
-// // Geocode & create location field
-// DoctorSchema.pre("save", async function (next) {
-//   const loc = await geocoder.geocode(this.address);
-//   this.location = {
-//     type: "Point",
-//     coordinates: [loc[0].longitude, loc[0].latitude],
-//     formattedAddress: loc[0].formattedAddress,
-//     street: loc[0].streetName,
-//     city: loc[0].city,
-//     state: loc[0].stateCode,
-//     zipcode: loc[0].zipcode,
-//     country: loc[0].countryCode,
-//   };
+// Virtual field for appointment count
+DoctorSchema.virtual('appointmentCount', {
+  ref: 'Appointment',
+  localField: '_id',
+  foreignField: 'doctor',
+  justOne: false,
+  count: true
+});
 
-//   // Do not save address in DB
-//   this.address = undefined;
-//   next();
-// });
+// Virtual field for upcoming appointments
+DoctorSchema.virtual('upcomingAppointments', {
+  ref: 'Appointment',
+  localField: '_id',
+  foreignField: 'doctor',
+  justOne: false,
+  match: { 
+    appointmentDate: { $gte: new Date() },
+    status: { $in: ['scheduled', 'confirmed'] }
+  }
+});
 
-// Cascade delete courses when a bootcamp is deleted
-// DoctorSchema.pre("remove", async function (next) {
-//   console.log(`Courses being removed from bootcamp ${this._id}`);
-//   await this.model("Course").deleteMany({ bootcamp: this._id });
-//   console.log(`Reviews being removed from bootcamp ${this._id}`);
-//   await this.model("Review").deleteMany({ bootcamp: this._id });
-//   next();
-// });
+// Calculate average rating from reviews
+DoctorSchema.statics.getAverageRating = async function(doctorId) {
+  const obj = await this.aggregate([
+    {
+      $match: { doctor: doctorId }
+    },
+    {
+      $group: {
+        _id: '$doctor',
+        averageRating: { $avg: '$rating' }
+      }
+    }
+  ]);
 
-// Reverse populate with virtuals
-// DoctorSchema.virtual("courses", {
-//   ref: "Course",
-//   localField: "_id",
-//   foreignField: "bootcamp",
-//   justOne: false,
-// });
+  try {
+    if (obj[0]) {
+      await this.findByIdAndUpdate(doctorId, {
+        rating: obj[0].averageRating.toFixed(1)
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+// Method to check doctor availability
+DoctorSchema.methods.isAvailableOn = function(date, time) {
+  const dayOfWeek = new Date(date).toLocaleString('en-us', {weekday: 'long'});
+  
+  // Check if doctor works on this day
+  if (!this.workingHours.workingDays.includes(dayOfWeek)) {
+    return false;
+  }
+  
+  // Check if time is within working hours
+  const [hours, minutes] = time.split(':').map(Number);
+  const requestTime = hours * 60 + minutes;
+  
+  const [fromHours, fromMinutes] = this.workingHours.from.split(':').map(Number);
+  const fromTime = fromHours * 60 + fromMinutes;
+  
+  const [toHours, toMinutes] = this.workingHours.to.split(':').map(Number);
+  const toTime = toHours * 60 + toMinutes;
+  
+  return requestTime >= fromTime && requestTime <= toTime;
+};
 
 module.exports = mongoose.model("Doctor", DoctorSchema);
