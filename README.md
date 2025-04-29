@@ -1,427 +1,538 @@
-# Hospital Appointment & Ambulance System API Documentation
+# Hospital Appointment & Ambulance Booking System
 
-## Base URL
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [System Architecture](#system-architecture)
+3. [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+   - [Environment Variables](#environment-variables)
+4. [Database Models](#database-models)
+5. [API Reference](#api-reference)
+   - [Authentication](#authentication)
+   - [Users](#users)
+   - [Doctors](#doctors)
+   - [Appointments](#appointments)
+   - [Ambulance](#ambulance)
+   - [Reviews](#reviews)
+6. [Middleware](#middleware)
+7. [Error Handling](#error-handling)
+8. [Deployment](#deployment)
+9. [Contributing](#contributing)
+
+## Introduction
+
+The Hospital Appointment & Ambulance Booking System is a comprehensive backend solution designed to facilitate medical appointments and ambulance services. This system allows patients to book appointments with doctors across various specializations, schedule ambulance pickups, and manage their healthcare needs efficiently.
+
+**Key Features:**
+
+- User authentication and authorization
+- Doctor profiles and scheduling
+- Appointment booking and management
+- Ambulance booking service
+- Review and rating system for doctors
+
+## System Architecture
+
+The system is built using a modern tech stack:
+
+- **Runtime Environment**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT (JSON Web Tokens)
+- **Deployment**: Vercel
+
+The application follows an MVC (Model-View-Controller) pattern with the following structure:
 
 ```
-https://your-api-domain.com/api/v1
+appointment_backend/
+├── config/           # Configuration files (DB connection)
+├── controllers/      # Route controllers
+├── middleware/       # Custom middleware functions
+├── models/           # Database models (Mongoose schemas)
+├── routes/           # API routes
+├── utils/            # Utility functions
+├── server.js         # Entry point
+└── package.json      # Project dependencies
 ```
 
-## Authentication
+## Getting Started
 
-API uses JWT tokens for authentication.
+### Prerequisites
 
-**How to authenticate:**
+- Node.js (v14 or higher)
+- MongoDB (local installation or MongoDB Atlas account)
+- npm or yarn package manager
 
-1. Get a token from login or register endpoint
-2. Add to request header: `Authorization: Bearer YOUR_TOKEN`
+### Installation
 
-## API Endpoints
+1. Clone the repository:
 
-### Authentication
+   ```
+   git clone <repository-url>
+   cd appointment_backend
+   ```
 
-| Method | Endpoint                          | Description            | Authentication |
-| ------ | --------------------------------- | ---------------------- | -------------- |
-| POST   | `/auth/register`                  | Register a new user    | No             |
-| POST   | `/auth/login`                     | Login user             | No             |
-| GET    | `/auth/me`                        | Get current user       | Yes            |
-| POST   | `/auth/forgotpassword`            | Request password reset | No             |
-| PUT    | `/auth/resetpassword/:resettoken` | Reset password         | No             |
-| PUT    | `/auth/updatedetails`             | Update user details    | Yes            |
-| PUT    | `/auth/updatepassword`            | Update password        | Yes            |
-| GET    | `/auth/logout`                    | Logout user            | Yes            |
+2. Install dependencies:
 
-### Users (Admin Only)
+   ```
+   npm install
+   ```
 
-| Method | Endpoint     | Description     | Authentication |
-| ------ | ------------ | --------------- | -------------- |
-| GET    | `/users`     | Get all users   | Admin          |
-| GET    | `/users/:id` | Get single user | Admin          |
-| POST   | `/users`     | Create user     | Admin          |
-| PUT    | `/users/:id` | Update user     | Admin          |
-| DELETE | `/users/:id` | Delete user     | Admin          |
+3. Set up environment variables (see next section)
 
-### Doctors
+4. Start the development server:
+   ```
+   npm run dev
+   ```
 
-| Method | Endpoint                                  | Description                   | Authentication |
-| ------ | ----------------------------------------- | ----------------------------- | -------------- |
-| GET    | `/doctors`                                | Get all doctors               | No             |
-| GET    | `/doctors/:id`                            | Get single doctor             | No             |
-| POST   | `/doctors`                                | Create doctor                 | Admin          |
-| PUT    | `/doctors/:id`                            | Update doctor                 | Admin          |
-| DELETE | `/doctors/:id`                            | Delete doctor                 | Admin          |
-| GET    | `/doctors/specialization/:specialization` | Get doctors by specialization | No             |
-| PATCH  | `/doctors/:id/availability`               | Update doctor availability    | Admin          |
-| PUT    | `/doctors/:id/photo`                      | Upload doctor photo           | Admin          |
-| GET    | `/doctors/:id/available-slots`            | Get available time slots      | No             |
+### Environment Variables
 
-### Appointments
+Create a `.env` file in the root directory with the following variables:
 
-| Method | Endpoint            | Description            | Authentication |
-| ------ | ------------------- | ---------------------- | -------------- |
-| GET    | `/appointments`     | Get all appointments   | Admin          |
-| GET    | `/appointments/:id` | Get single appointment | User/Admin     |
-| POST   | `/appointments`     | Create appointment     | User           |
-| PUT    | `/appointments/:id` | Update appointment     | User/Admin     |
-| DELETE | `/appointments/:id` | Delete appointment     | User/Admin     |
+```
+NODE_ENV=development
+PORT=5000
+MONGO_URI=mongodb://localhost:27017/hospital_app
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRE=30d
+JWT_COOKIE_EXPIRE=30
+FILE_UPLOAD_PATH=./public/uploads
+MAX_FILE_UPLOAD=1000000
+```
 
-### Ambulance
+## Database Models
 
-| Method | Endpoint                 | Description                | Authentication |
-| ------ | ------------------------ | -------------------------- | -------------- |
-| GET    | `/ambulances`            | Get all ambulance bookings | Admin          |
-| GET    | `/ambulances/:id`        | Get single booking         | Public         |
-| POST   | `/ambulances`            | Create ambulance booking   | Public         |
-| PUT    | `/ambulances/:id`        | Update ambulance booking   | Admin          |
-| DELETE | `/ambulances/:id`        | Delete ambulance booking   | Admin          |
-| PATCH  | `/ambulances/:id/status` | Update status              | Admin          |
+### User Model
 
-### Reviews
+Represents patients and administrators in the system.
 
-| Method | Endpoint                     | Description        | Authentication |
-| ------ | ---------------------------- | ------------------ | -------------- |
-| GET    | `/reviews`                   | Get all reviews    | Public         |
-| GET    | `/doctors/:doctorId/reviews` | Get doctor reviews | Public         |
-| POST   | `/doctors/:doctorId/reviews` | Add review         | User           |
-| PUT    | `/reviews/:id`               | Update review      | User           |
-| DELETE | `/reviews/:id`               | Delete review      | User           |
+**Fields:**
 
-## Request & Response Examples
+- `name` - User's full name
+- `email` - Unique email address
+- `phone` - Contact phone number
+- `address` - Physical address
+- `gender` - User's gender (Male, Female, Other)
+- `birthDate` - Date of birth
+- `password` - Hashed password
+- `photo` - Profile photo
+- `role` - User role (user, admin)
+- `resetPasswordToken` - For password recovery
+- `isEmailConfirmed` - Email verification status
+- `lastLogin` - Timestamp of last login
+- `active` - Account status
+
+### Doctor Model
+
+Represents healthcare professionals available for appointments.
+
+**Fields:**
+
+- `name` - Doctor's name
+- `specialization` - Medical specialization
+- `qualifications` - Array of education credentials
+- `experience` - Years of practice and details
+- `hospital` - Hospital name and address
+- `contactInfo` - Professional contact information
+- `workingHours` - Schedule and availability
+- `rating` - Average patient rating
+- `fee` - Consultation and follow-up fees
+- `languages` - Languages spoken
+- `image` - Profile photo
+- `available` - Availability status
+
+### Appointment Model
+
+Represents a booking between a patient and doctor.
+
+**Fields:**
+
+- `name` - Patient name
+- `phone` - Contact number
+- `doctor` - Reference to Doctor model
+- `chamber` - Location information
+- `consultationType` - Type of consultation
+- `appointmentType` - Category of appointment
+- `date` - Scheduled date and time
+- `status` - Booking status
+
+### Ambulance Model
+
+Represents ambulance booking services.
+
+**Fields:**
+
+- `fromLocation` - Pickup location
+- `destination` - Drop-off location
+- `ambulanceType` - Type of ambulance service
+- `date` - Scheduled date
+- `name` - Patient/requester name
+- `phone` - Contact number
+- `status` - Booking status
+
+### Review Model
+
+Represents patient feedback for doctors.
+
+**Fields:**
+
+- `text` - Review content
+- `rating` - Numerical rating (1-10)
+- `doctor` - Reference to Doctor model
+- `user` - Reference to User model
+
+### DoctorSchedule Model
+
+Contains detailed scheduling information for doctors.
+
+**Fields:**
+
+- `doctorId` - Reference to Doctor model
+- `schedule` - Array of day and time slot objects
+
+## API Reference
 
 ### Authentication
 
 #### Register User
 
-```
-POST /auth/register
-```
-
-Request body:
-
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123",
-  "phone": "1234567890",
-  "address": "123 Main St",
-  "gender": "Male",
-  "birthDate": "1990-01-01"
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+- **URL**: `/api/v1/auth/register`
+- **Method**: `POST`
+- **Body**:
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "phone": "1234567890",
+    "address": "123 Main St",
+    "gender": "Male",
+    "birthDate": "1990-01-01"
+  }
+  ```
+- **Response**: JWT token
 
 #### Login
 
-```
-POST /auth/login
-```
+- **URL**: `/api/v1/auth/login`
+- **Method**: `POST`
+- **Body**:
+  ```json
+  {
+    "email": "john@example.com",
+    "password": "password123"
+  }
+  ```
+- **Response**: JWT token
 
-Request body:
+#### Get Current User
 
-```json
-{
-  "email": "john@example.com",
-  "password": "password123"
-}
-```
+- **URL**: `/api/v1/auth/me`
+- **Method**: `GET`
+- **Auth**: Required
+- **Response**: User profile
 
-Response:
+### Users
 
-```json
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+#### Get All Users
+
+- **URL**: `/api/v1/users`
+- **Method**: `GET`
+- **Auth**: Admin only
+- **Query Parameters**:
+  - `select` - Fields to return
+  - `sort` - Sorting criteria
+  - `page` - Page number
+  - `limit` - Results per page
+
+#### Get Single User
+
+- **URL**: `/api/v1/users/:id`
+- **Method**: `GET`
+- **Auth**: Admin only
+- **Response**: User profile
+
+#### Create User
+
+- **URL**: `/api/v1/users`
+- **Method**: `POST`
+- **Auth**: Admin only
+- **Body**: User data
+- **Response**: Created user
+
+#### Update User
+
+- **URL**: `/api/v1/users/:id`
+- **Method**: `PUT`
+- **Auth**: Admin only
+- **Body**: Updated user data
+- **Response**: Updated user
+
+#### Delete User
+
+- **URL**: `/api/v1/users/:id`
+- **Method**: `DELETE`
+- **Auth**: Admin only
+- **Response**: Success message
 
 ### Doctors
 
 #### Get All Doctors
 
-```
-GET /doctors
-```
+- **URL**: `/api/v1/doctors`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `specialization` - Filter by specialization
+  - `select` - Fields to return
+  - `sort` - Sorting criteria
+  - `page` - Page number
+  - `limit` - Results per page
+- **Response**: List of doctors
 
-Query parameters:
+#### Get Doctor by ID
 
-- `specialization` - Filter by specialization
-- `select` - Fields to include
-- `sort` - Sort by field(s)
-- `page` - Page number
-- `limit` - Results per page
-
-Response:
-
-```json
-{
-  "success": true,
-  "count": 2,
-  "pagination": {
-    "next": {
-      "page": 2,
-      "limit": 25
-    }
-  },
-  "data": [
-    {
-      "_id": "60a1b2c3d4e5f67890abcdef",
-      "name": "Dr. Jane Smith",
-      "specialization": "Cardiology",
-      "hospital": {
-        "name": "City General Hospital"
-      },
-      "rating": 4.8,
-      "fee": {
-        "consultation": 2000
-      }
-    },
-    {
-      "_id": "60a1b2c3d4e5f67890abcdff",
-      "name": "Dr. Michael Johnson",
-      "specialization": "Neurology",
-      "hospital": {
-        "name": "Regional Medical Center"
-      },
-      "rating": 4.6,
-      "fee": {
-        "consultation": 2500
-      }
-    }
-  ]
-}
-```
+- **URL**: `/api/v1/doctors/:id`
+- **Method**: `GET`
+- **Response**: Doctor details with upcoming appointments
 
 #### Create Doctor
 
-```
-POST /doctors
-```
+- **URL**: `/api/v1/doctors`
+- **Method**: `POST`
+- **Auth**: Required
+- **Body**: Doctor details
+- **Response**: Created doctor
 
-Request body:
+#### Update Doctor
 
-```json
-{
-  "name": "Dr. Robert Williams",
-  "specialization": "Dermatology",
-  "education": "MBBS, MD Dermatology",
-  "experienceYears": 10,
-  "experience": "10+ years in clinical dermatology",
-  "hospital": "Skin Care Center",
-  "hospitalAddress": "123 Medical Blvd",
-  "from": "10:00",
-  "to": "18:00",
-  "workingDays": "Monday,Tuesday,Thursday,Friday",
-  "slotDuration": 30,
-  "fee": 2000
-}
-```
+- **URL**: `/api/v1/doctors/:id`
+- **Method**: `PUT`
+- **Auth**: Required
+- **Body**: Updated doctor data
+- **Response**: Updated doctor
 
-Response:
+#### Delete Doctor
 
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "60a1b2c3d4e5f67890abcdef",
-    "name": "Dr. Robert Williams",
-    "specialization": "Dermatology",
-    "education": "MBBS, MD Dermatology",
-    "experience": {
-      "years": 10,
-      "details": "10+ years in clinical dermatology"
-    },
-    "hospital": {
-      "name": "Skin Care Center",
-      "address": "123 Medical Blvd"
-    },
-    "workingHours": {
-      "from": "10:00",
-      "to": "18:00",
-      "workingDays": ["Monday", "Tuesday", "Thursday", "Friday"],
-      "slotDuration": 30
-    },
-    "fee": {
-      "consultation": 2000
-    }
-  }
-}
-```
+- **URL**: `/api/v1/doctors/:id`
+- **Method**: `DELETE`
+- **Auth**: Required
+- **Response**: Success message
+
+#### Get Available Slots
+
+- **URL**: `/api/v1/doctors/:id/available-slots`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `date` - Date to check availability
+- **Response**: List of available time slots
 
 ### Appointments
 
+#### Get All Appointments
+
+- **URL**: `/api/v1/appointments`
+- **Method**: `GET`
+- **Auth**: Admin only
+- **Response**: List of appointments
+
+#### Get Appointment by ID
+
+- **URL**: `/api/v1/appointments/:id`
+- **Method**: `GET`
+- **Auth**: Required
+- **Response**: Appointment details
+
 #### Create Appointment
 
-```
-POST /appointments
-```
-
-Request body:
-
-```json
-{
-  "name": "Patient Name",
-  "phone": "1234567890",
-  "doctor": "60a1b2c3d4e5f67890abcdef",
-  "chamber": "City General Hospital",
-  "consultationType": "Face to Face",
-  "appointmentType": "New Patient",
-  "date": "2023-08-15T10:30:00Z"
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "60a1b2c3d4e5f67890abcd00",
+- **URL**: `/api/v1/appointments`
+- **Method**: `POST`
+- **Auth**: Required
+- **Body**:
+  ```json
+  {
     "name": "Patient Name",
     "phone": "1234567890",
-    "doctor": {
-      "_id": "60a1b2c3d4e5f67890abcdef",
-      "name": "Dr. Jane Smith",
-      "specialization": "Cardiology"
-    },
-    "chamber": "City General Hospital",
+    "doctor": "doctor_id_here",
+    "chamber": "Hospital Name",
     "consultationType": "Face to Face",
     "appointmentType": "New Patient",
-    "date": "2023-08-15T10:30:00Z",
-    "status": "Pending"
+    "date": "2023-08-15T10:30:00Z"
   }
-}
-```
+  ```
+- **Response**: Created appointment
+
+#### Update Appointment
+
+- **URL**: `/api/v1/appointments/:id`
+- **Method**: `PUT`
+- **Auth**: Required
+- **Body**: Updated appointment data
+- **Response**: Updated appointment
+
+#### Delete Appointment
+
+- **URL**: `/api/v1/appointments/:id`
+- **Method**: `DELETE`
+- **Auth**: Required
+- **Response**: Success message
 
 ### Ambulance
 
-#### Book Ambulance
+#### Get All Ambulance Bookings
 
-```
-POST /ambulances
-```
+- **URL**: `/api/v1/ambulances`
+- **Method**: `GET`
+- **Auth**: Admin only
+- **Response**: List of ambulance bookings
 
-Request body:
+#### Get Ambulance Booking by ID
 
-```json
-{
-  "fromLocation": "Zindabazar",
-  "destination": "Sylhet Medical",
-  "ambulanceType": "ICU",
-  "date": "2023-08-15",
-  "name": "Rahim Uddin",
-  "phone": "01700000000"
-}
-```
+- **URL**: `/api/v1/ambulances/:id`
+- **Method**: `GET`
+- **Response**: Booking details
 
-Response:
+#### Create Ambulance Booking
 
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "60a1b2c3d4e5f67890abcd03",
+- **URL**: `/api/v1/ambulances`
+- **Method**: `POST`
+- **Body**:
+  ```json
+  {
     "fromLocation": "Zindabazar",
     "destination": "Sylhet Medical",
     "ambulanceType": "ICU",
-    "date": "2023-08-15T00:00:00.000Z",
+    "date": "2023-08-15",
     "name": "Rahim Uddin",
-    "phone": "01700000000",
-    "status": "Pending",
-    "createdAt": "2023-08-10T15:30:00.000Z"
+    "phone": "01700000000"
   }
-}
-```
+  ```
+- **Response**: Created booking
+
+#### Update Ambulance Booking
+
+- **URL**: `/api/v1/ambulances/:id`
+- **Method**: `PUT`
+- **Auth**: Admin only
+- **Body**: Updated booking data
+- **Response**: Updated booking
 
 #### Update Ambulance Status
 
-```
-PATCH /ambulances/60a1b2c3d4e5f67890abcd03/status
-```
-
-Request body:
-
-```json
-{
-  "status": "Confirmed"
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "60a1b2c3d4e5f67890abcd03",
-    "fromLocation": "Zindabazar",
-    "destination": "Sylhet Medical",
-    "ambulanceType": "ICU",
-    "date": "2023-08-15T00:00:00.000Z",
-    "name": "Rahim Uddin",
-    "phone": "01700000000",
-    "status": "Confirmed",
-    "updatedAt": "2023-08-11T09:15:00.000Z"
+- **URL**: `/api/v1/ambulances/:id/status`
+- **Method**: `PATCH`
+- **Auth**: Admin only
+- **Body**:
+  ```json
+  {
+    "status": "Confirmed"
   }
-}
-```
+  ```
+- **Response**: Updated booking
 
 ### Reviews
 
+#### Get All Reviews
+
+- **URL**: `/api/v1/reviews`
+- **Method**: `GET`
+- **Response**: List of reviews
+
+#### Get Reviews for Doctor
+
+- **URL**: `/api/v1/doctors/:doctorId/reviews`
+- **Method**: `GET`
+- **Response**: List of doctor's reviews
+
 #### Add Review
 
-```
-POST /doctors/60a1b2c3d4e5f67890abcdef/reviews
-```
-
-Request body:
-
-```json
-{
-  "rating": 5,
-  "text": "Excellent doctor, very professional and knowledgeable."
-}
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "60a1b2c3d4e5f67890abcd04",
+- **URL**: `/api/v1/doctors/:doctorId/reviews`
+- **Method**: `POST`
+- **Auth**: Required
+- **Body**:
+  ```json
+  {
     "rating": 5,
-    "text": "Excellent doctor, very professional and knowledgeable.",
-    "doctor": "60a1b2c3d4e5f67890abcdef",
-    "user": "60a1b2c3d4e5f67890abcde0",
-    "createdAt": "2023-08-12T10:45:00.000Z"
+    "text": "Excellent doctor, very attentive and knowledgeable."
   }
-}
-```
+  ```
+- **Response**: Created review
 
-## Error Responses
+#### Update Review
 
-All endpoints return consistent error responses:
+- **URL**: `/api/v1/reviews/:id`
+- **Method**: `PUT`
+- **Auth**: Required
+- **Body**: Updated review data
+- **Response**: Updated review
+
+#### Delete Review
+
+- **URL**: `/api/v1/reviews/:id`
+- **Method**: `DELETE`
+- **Auth**: Required
+- **Response**: Success message
+
+## Middleware
+
+### Authentication Middleware
+
+Protects routes and verifies JWT tokens:
+
+- `protect` - Verifies user authentication
+- `authorize` - Verifies user role permissions
+
+### Advanced Results
+
+Adds pagination, filtering and sorting to API responses.
+
+### Error Handler
+
+Custom error handling middleware for consistent API responses.
+
+## Error Handling
+
+The API uses consistent error responses:
 
 ```json
 {
   "success": false,
-  "error": "Error message here",
+  "error": "Error message",
   "statusCode": 400
 }
 ```
 
-Common error status codes:
+Common status codes:
 
-- 400 - Bad Request
-- 401 - Unauthorized
-- 403 - Forbidden
-- 404 - Not Found
-- 500 - Server Error
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `500` - Server Error
+
+## Deployment
+
+The application is configured for deployment on Vercel.
+
+1. Install Vercel CLI:
+
+   ```
+   npm install -g vercel
+   ```
+
+2. Deploy:
+
+   ```
+   vercel
+   ```
+
+3. Set environment variables in the Vercel dashboard.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
