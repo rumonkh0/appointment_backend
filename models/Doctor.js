@@ -11,113 +11,104 @@ const DoctorSchema = new mongoose.Schema(
       maxlength: [50, "Name can not be more than 50 characters"],
     },
     slug: String,
+    img: {
+      type: String,
+      default: "no-photo.jpg",
+    },
+    fee: {
+      type: String,
+      required: [true, "Please add consultation fee"],
+      trim: true,
+    },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other"],
+      required: [true, "Please specify gender"],
+    },
+    degrees: {
+      type: [String],
+      required: [true, "Please add degrees"],
+    },
     specialization: {
       type: String,
       required: [true, "Please add a specialization"],
       trim: true,
     },
-    qualifications: [{
-      degree: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      institution: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      year: {
-        type: Number
-      }
-    }],
-    education: {
+    experience_years: {
+      type: Number,
+      required: [true, "Please specify years of experience"],
+      min: 0,
+    },
+    consultation_type: {
+      type: [String],
+      required: [true, "Please specify consultation types"],
+    },
+    bmdc_registration: {
       type: String,
-      required: [true, "Please add education details"],
+      required: [true, "Please add BMDC registration number"],
       trim: true,
     },
-    experience: {
-      years: {
-        type: Number,
-        required: [true, "Please specify years of experience"],
-        min: 0
-      },
-      details: {
-        type: String,
-        required: [true, "Please add experience details"],
-        trim: true,
-      }
+    about: {
+      type: String,
+      required: [true, "Please add about information"],
+      trim: true,
     },
-    hospital: {
-      name: {
-        type: String,
-        required: [true, "Please add hospital name"],
-        trim: true,
+    chamber: [
+      {
+        name: {
+          type: String,
+          required: [true, "Please add chamber name"],
+          trim: true,
+        },
+        address: {
+          type: String,
+          required: [true, "Please add chamber address"],
+          trim: true,
+        },
+        contact: {
+          type: String,
+          required: [true, "Please add contact information"],
+          trim: true,
+        },
+        availability: {
+          type: String,
+          required: [true, "Please add availability information"],
+          trim: true,
+        },
       },
-      address: {
-        type: String,
-        trim: true,
-      }
+    ],
+    services: {
+      type: [String],
+      required: [true, "Please add services"],
+      trim: true,
+    },
+    work_experience: [
+      {
+        title: {
+          type: String,
+          required: [true, "Please add job title"],
+          trim: true,
+        },
+        institution: {
+          type: String,
+          required: [true, "Please add institution name"],
+          trim: true,
+        },
+      },
+    ],
+    education: {
+      type: [String],
+      required: [true, "Please add education details"],
     },
     location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-      },
-      coordinates: {
-        type: [Number],
-      },
-      formattedAddress: String,
-      street: String,
-      city: String,
-      state: String,
-      zipcode: String,
-      country: String
+      type: String,
+      required: [true, "Please add location"],
+      trim: true,
     },
-    contactInfo: {
-      email: {
-        type: String,
-        match: [
-          /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-          'Please add a valid email'
-        ],
-        trim: true,
-      },
-      phone: {
-        type: String,
-        required: [true, "Please add a contact phone number"],
-        trim: true,
-      },
-      website: {
-        type: String,
-        trim: true,
-      },
-      socialMedia: {
-        linkedin: String,
-        twitter: String,
-        facebook: String
-      }
-    },
-    workingHours: {
-      from: {
-        type: String,
-        required: [true, "Please specify starting time"]
-      },
-      to: {
-        type: String,
-        required: [true, "Please specify ending time"]
-      },
-      workingDays: {
-        type: [String],
-        required: [true, "Please specify working days"],
-        enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-      },
-      slotDuration: {
-        type: Number,
-        default: 30, // Duration in minutes
-        min: 5,
-        max: 120
-      }
+    availability: {
+      type: String,
+      required: [true, "Please add availability time"],
+      trim: true,
     },
     rating: {
       type: Number,
@@ -128,49 +119,6 @@ const DoctorSchema = new mongoose.Schema(
     reviews: {
       type: Number,
       default: 0,
-    },
-    fee: {
-      consultation: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      followUp: {
-        type: Number,
-        min: 0,
-      }
-    },
-    languages: {
-      type: [String],
-      default: ["English"]
-    },
-    available: {
-      type: Boolean,
-      default: true,
-    },
-    image: {
-      type: String,
-      default: "no-photo.jpg",
-    },
-    description: {
-      type: String,
-      maxlength: [500, "Description cannot be more than 500 characters"],
-      trim: true,
-    },
-    services: {
-      type: [String],
-      trim: true,
-    },
-    acceptsInsurance: {
-      type: Boolean,
-      default: false
-    },
-    insuranceProviders: {
-      type: [String]
-    },
-    averageConsultationTime: {
-      type: Number, // in minutes
-      default: 30
     },
     isVerified: {
       type: Boolean,
@@ -236,26 +184,17 @@ DoctorSchema.statics.getAverageRating = async function(doctorId) {
   }
 };
 
-// Method to check doctor availability
+// Method to check doctor availability based on chamber information
 DoctorSchema.methods.isAvailableOn = function(date, time) {
   const dayOfWeek = new Date(date).toLocaleString('en-us', {weekday: 'long'});
   
-  // Check if doctor works on this day
-  if (!this.workingHours.workingDays.includes(dayOfWeek)) {
-    return false;
-  }
-  
-  // Check if time is within working hours
-  const [hours, minutes] = time.split(':').map(Number);
-  const requestTime = hours * 60 + minutes;
-  
-  const [fromHours, fromMinutes] = this.workingHours.from.split(':').map(Number);
-  const fromTime = fromHours * 60 + fromMinutes;
-  
-  const [toHours, toMinutes] = this.workingHours.to.split(':').map(Number);
-  const toTime = toHours * 60 + toMinutes;
-  
-  return requestTime >= fromTime && requestTime <= toTime;
+  // Check if any chamber is available on this day and time
+  return this.chamber.some(chamber => {
+    // This is a simplified implementation and would need to be adjusted
+    // to parse the availability string (e.g., "Saturday to Wednesday, 2 PM - 5 PM")
+    const availabilityInfo = chamber.availability;
+    return availabilityInfo.includes(dayOfWeek);
+  });
 };
 
 module.exports = mongoose.model("Doctor", DoctorSchema);

@@ -3,7 +3,7 @@ const Doctor = require("../models/Doctor");
 const asyncHandler = require("../middleware/async");
 const ErrorResponse = require("../utils/errorResponse");
 
-// @desc      Get all doctors with filtering, sorting, and pagination
+// @desc      Get all doctors with filtering and sorting (no pagination)
 // @route     GET /api/v1/doctors
 // @access    Public
 exports.getDoctors = asyncHandler(async (req, res, next) => {
@@ -11,7 +11,7 @@ exports.getDoctors = asyncHandler(async (req, res, next) => {
   const reqQuery = { ...req.query };
 
   // Fields to exclude
-  const removeFields = ["select", "sort", "page", "limit"];
+  const removeFields = ["select", "sort"];
 
   // Loop over removeFields and delete them from reqQuery
   removeFields.forEach((param) => delete reqQuery[param]);
@@ -42,42 +42,15 @@ exports.getDoctors = asyncHandler(async (req, res, next) => {
     query = query.sort("-createdAt");
   }
 
-  // Pagination
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 25;
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const total = await Doctor.countDocuments(JSON.parse(queryStr));
-
-  query = query.skip(startIndex).limit(limit);
-
   // Add appointment count using virtual
   query = query.populate("appointmentCount");
 
-  // Executing query
+  // Executing query - get all doctors (no pagination)
   const doctors = await query;
-
-  // Pagination result
-  const pagination = {};
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: page + 1,
-      limit,
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: page - 1,
-      limit,
-    };
-  }
 
   res.status(200).json({
     success: true,
     count: doctors.length,
-    pagination,
     data: doctors,
   });
 });
@@ -107,56 +80,63 @@ exports.createDoctor = asyncHandler(async (req, res, next) => {
   // Handle the nested fields properly
   const doctorData = {
     ...req.body,
-    // Ensure proper structure for nested fields
-    experience: {
-      years: req.body.experienceYears || 0,
-      details: req.body.experience || req.body.experienceDetails || "",
-    },
-    hospital: {
-      name: req.body.hospital || req.body.hospitalName || "",
-      address: req.body.hospitalAddress || "",
-    },
   };
 
-  // If the request contains qualification items, structure them properly
-  if (req.body.qualifications) {
-    // If qualifications is sent as a JSON string, parse it
-    if (typeof req.body.qualifications === "string") {
-      try {
-        doctorData.qualifications = JSON.parse(req.body.qualifications);
-      } catch (err) {
-        return next(new ErrorResponse("Invalid qualifications format", 400));
-      }
+  // Handle degrees if sent as string
+  if (req.body.degrees && typeof req.body.degrees === "string") {
+    try {
+      doctorData.degrees = JSON.parse(req.body.degrees);
+    } catch (err) {
+      // If it's not valid JSON, try splitting by comma
+      doctorData.degrees = req.body.degrees.split(",").map(degree => degree.trim());
     }
-  } else if (req.body.degree && req.body.institution) {
-    // Handle single qualification sent as separate fields
-    doctorData.qualifications = [
-      {
-        degree: req.body.degree,
-        institution: req.body.institution,
-        year: req.body.year,
-      },
-    ];
   }
 
-  // Handle working hours formatting
-  if (req.body.workingDays) {
-    doctorData.workingHours = {
-      from: req.body.from || "09:00",
-      to: req.body.to || "17:00",
-      workingDays: Array.isArray(req.body.workingDays)
-        ? req.body.workingDays
-        : req.body.workingDays.split(",").map((day) => day.trim()),
-      slotDuration: req.body.slotDuration || 30,
-    };
+  // Handle services if sent as string
+  if (req.body.services && typeof req.body.services === "string") {
+    try {
+      doctorData.services = JSON.parse(req.body.services);
+    } catch (err) {
+      doctorData.services = req.body.services.split(",").map(service => service.trim());
+    }
   }
 
-  // Handle fee structure
-  if (req.body.fee) {
-    doctorData.fee = {
-      consultation: req.body.fee,
-      followUp: req.body.followUpFee || req.body.fee * 0.7, // Default follow-up to 70% of consultation
-    };
+  // Handle consultation_type if sent as string
+  if (req.body.consultation_type && typeof req.body.consultation_type === "string") {
+    try {
+      doctorData.consultation_type = JSON.parse(req.body.consultation_type);
+    } catch (err) {
+      doctorData.consultation_type = req.body.consultation_type
+        .split(",")
+        .map(type => type.trim());
+    }
+  }
+
+  // Handle education if sent as string
+  if (req.body.education && typeof req.body.education === "string") {
+    try {
+      doctorData.education = JSON.parse(req.body.education);
+    } catch (err) {
+      doctorData.education = req.body.education.split(",").map(edu => edu.trim());
+    }
+  }
+
+  // Handle chamber information
+  if (req.body.chamber && typeof req.body.chamber === "string") {
+    try {
+      doctorData.chamber = JSON.parse(req.body.chamber);
+    } catch (err) {
+      return next(new ErrorResponse("Invalid chamber data format", 400));
+    }
+  }
+
+  // Handle work_experience
+  if (req.body.work_experience && typeof req.body.work_experience === "string") {
+    try {
+      doctorData.work_experience = JSON.parse(req.body.work_experience);
+    } catch (err) {
+      return next(new ErrorResponse("Invalid work experience data format", 400));
+    }
   }
 
   // Create doctor
@@ -190,73 +170,31 @@ exports.editDoctor = asyncHandler(async (req, res, next) => {
   // Process update data
   const updateData = { ...req.body };
 
-  // Handle nested field updates
-  if (
-    req.body.experience ||
-    req.body.experienceYears ||
-    req.body.experienceDetails
-  ) {
-    updateData.experience = {
-      years: req.body.experienceYears || doctor.experience?.years || 0,
-      details:
-        req.body.experience ||
-        req.body.experienceDetails ||
-        doctor.experience?.details ||
-        "",
-    };
-  }
-
-  if (req.body.hospital || req.body.hospitalName || req.body.hospitalAddress) {
-    updateData.hospital = {
-      name:
-        req.body.hospital ||
-        req.body.hospitalName ||
-        doctor.hospital?.name ||
-        "",
-      address: req.body.hospitalAddress || doctor.hospital?.address || "",
-    };
-  }
-
-  // Handle fee updates
-  if (req.body.fee) {
-    updateData.fee = {
-      consultation: req.body.fee,
-      followUp:
-        req.body.followUpFee || doctor.fee?.followUp || req.body.fee * 0.7,
-    };
-  }
-
-  // Update qualifications if provided
-  if (req.body.qualifications) {
-    if (typeof req.body.qualifications === "string") {
+  // Handle arrays and objects if they come as strings
+  const arrayFields = ['degrees', 'services', 'consultation_type', 'education'];
+  arrayFields.forEach(field => {
+    if (updateData[field] && typeof updateData[field] === 'string') {
       try {
-        updateData.qualifications = JSON.parse(req.body.qualifications);
+        updateData[field] = JSON.parse(updateData[field]);
       } catch (err) {
-        return next(new ErrorResponse("Invalid qualifications format", 400));
+        updateData[field] = updateData[field].split(',').map(item => item.trim());
       }
     }
-  }
+  });
 
-  // Handle working hours update
-  if (
-    req.body.workingDays ||
-    req.body.from ||
-    req.body.to ||
-    req.body.slotDuration
-  ) {
-    updateData.workingHours = {
-      from: req.body.from || doctor.workingHours?.from || "09:00",
-      to: req.body.to || doctor.workingHours?.to || "17:00",
-      workingDays: req.body.workingDays
-        ? Array.isArray(req.body.workingDays)
-          ? req.body.workingDays
-          : req.body.workingDays.split(",").map((day) => day.trim())
-        : doctor.workingHours?.workingDays || [],
-      slotDuration:
-        req.body.slotDuration || doctor.workingHours?.slotDuration || 30,
-    };
-  }
+  // Handle nested objects
+  const objectFields = ['chamber', 'work_experience'];
+  objectFields.forEach(field => {
+    if (updateData[field] && typeof updateData[field] === 'string') {
+      try {
+        updateData[field] = JSON.parse(updateData[field]);
+      } catch (err) {
+        // If parsing fails, we'll leave it as is and validation will catch the error
+      }
+    }
+  });
 
+  // Update the doctor
   doctor = await Doctor.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
     runValidators: true,
@@ -315,6 +253,117 @@ exports.getDoctorsBySpecialization = asyncHandler(async (req, res, next) => {
     success: true,
     count: doctors.length,
     data: doctors,
+  });
+});
+
+// @desc      Get doctors by location
+// @route     GET /api/v1/doctors/location/:location
+// @access    Public
+exports.getDoctorsByLocation = asyncHandler(async (req, res, next) => {
+  const doctors = await Doctor.find({
+    location: { $regex: req.params.location, $options: "i" },
+  }).populate("appointmentCount");
+
+  if (!doctors || doctors.length === 0) {
+    return next(
+      new ErrorResponse(
+        `No doctors found in location ${req.params.location}`,
+        404
+      )
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    count: doctors.length,
+    data: doctors,
+  });
+});
+
+// @desc    Get all chambers for a doctor
+// @route   GET /api/v1/doctors/:id/chambers
+// @access  Public
+exports.getDoctorChambers = asyncHandler(async (req, res, next) => {
+  const doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  if (!doctor.chamber || doctor.chamber.length === 0) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      data: [],
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    count: doctor.chamber.length,
+    data: doctor.chamber,
+  });
+});
+
+// @desc    Get a specific chamber by ID for a doctor
+// @route   GET /api/v1/doctors/:id/chambers/:chamberId
+// @access  Public
+exports.getDoctorChamberById = asyncHandler(async (req, res, next) => {
+  const doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  if (!doctor.chamber || doctor.chamber.length === 0) {
+    return next(
+      new ErrorResponse(`No chambers found for this doctor`, 404)
+    );
+  }
+
+  const chamber = doctor.chamber.find(
+    c => c._id.toString() === req.params.chamberId
+  );
+  
+  if (!chamber) {
+    return next(
+      new ErrorResponse(`Chamber with id ${req.params.chamberId} not found`, 404)
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    data: chamber,
+  });
+});
+
+// @desc    Get a specific chamber by index for a doctor
+// @route   GET /api/v1/doctors/:id/chambers/:chamberIndex
+// @access  Public
+exports.getDoctorChamberByIndex = asyncHandler(async (req, res, next) => {
+  const doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  const chamberIndex = parseInt(req.params.chamberIndex);
+  
+  if (isNaN(chamberIndex) || chamberIndex < 0 || chamberIndex >= doctor.chamber.length) {
+    return next(
+      new ErrorResponse(`Chamber with index ${req.params.chamberIndex} not found`, 404)
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    data: doctor.chamber[chamberIndex],
   });
 });
 
@@ -389,7 +438,7 @@ exports.doctorPhotoUpload = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Problem with file upload", 500));
       }
 
-      await Doctor.findByIdAndUpdate(req.params.id, { image: file.name });
+      await Doctor.findByIdAndUpdate(req.params.id, { img: file.name });
 
       res.status(200).json({
         success: true,
@@ -403,7 +452,7 @@ exports.doctorPhotoUpload = asyncHandler(async (req, res, next) => {
 // @route   GET /api/v1/doctors/:id/available-slots
 // @access  Public
 exports.getAvailableSlots = asyncHandler(async (req, res, next) => {
-  const { date } = req.query;
+  const { date, chamberId } = req.query;
 
   if (!date) {
     return next(new ErrorResponse("Please provide a date", 400));
@@ -426,25 +475,41 @@ exports.getAvailableSlots = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Check if doctor works on this day
+  // Find the selected chamber or use the first one
+  let selectedChamber;
+  if (chamberId && doctor.chamber && doctor.chamber.length > 0) {
+    selectedChamber = doctor.chamber.find(c => c._id.toString() === chamberId);
+  }
+  
+  if (!selectedChamber && doctor.chamber && doctor.chamber.length > 0) {
+    selectedChamber = doctor.chamber[0];
+  }
+
+  if (!selectedChamber) {
+    return next(new ErrorResponse("No chamber information available", 400));
+  }
+
+  // Check if doctor works on this day in this chamber
   const appointmentDate = new Date(date);
   const dayOfWeek = appointmentDate.toLocaleString("en-us", {
     weekday: "long",
   });
 
-  if (!doctor.workingHours.workingDays.includes(dayOfWeek)) {
-    return next(new ErrorResponse(`Doctor does not work on ${dayOfWeek}`, 400));
+  const daySchedule = selectedChamber.schedule.find(
+    s => s.day.toLowerCase() === dayOfWeek.toLowerCase()
+  );
+
+  if (!daySchedule) {
+    return next(new ErrorResponse(`Doctor does not work on ${dayOfWeek} at this chamber`, 400));
   }
 
   // Generate all possible slots based on working hours and slot duration
-  const [fromHours, fromMinutes] = doctor.workingHours.from
-    .split(":")
-    .map(Number);
-  const [toHours, toMinutes] = doctor.workingHours.to.split(":").map(Number);
+  const [fromHours, fromMinutes] = daySchedule.startTime.split(":").map(Number);
+  const [toHours, toMinutes] = daySchedule.endTime.split(":").map(Number);
 
   const startMinutes = fromHours * 60 + fromMinutes;
   const endMinutes = toHours * 60 + toMinutes;
-  const slotDuration = doctor.workingHours.slotDuration || 30;
+  const slotDuration = selectedChamber.slotDuration || 30;
 
   const slots = [];
   for (let i = startMinutes; i < endMinutes; i += slotDuration) {
@@ -464,5 +529,144 @@ exports.getAvailableSlots = asyncHandler(async (req, res, next) => {
     success: true,
     count: slots.length,
     data: slots,
+    chamber: selectedChamber
+  });
+});
+
+// @desc      Add a chamber to a doctor
+// @route     POST /api/v1/doctors/:id/chambers
+// @access    Private
+exports.addChamber = asyncHandler(async (req, res, next) => {
+  let doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  // Process chamber data
+  let chamberData = req.body;
+  
+  // Handle schedule if sent as string
+  if (req.body.schedule && typeof req.body.schedule === "string") {
+    try {
+      chamberData.schedule = JSON.parse(req.body.schedule);
+    } catch (err) {
+      return next(new ErrorResponse("Invalid schedule data format", 400));
+    }
+  }
+
+  // Initialize chamber array if it doesn't exist
+  if (!doctor.chamber) {
+    doctor.chamber = [];
+  }
+
+  // Add the new chamber
+  doctor.chamber.push(chamberData);
+
+  // Save the doctor with the new chamber
+  doctor = await doctor.save();
+
+  res.status(201).json({
+    success: true,
+    data: doctor.chamber[doctor.chamber.length - 1]
+  });
+});
+
+// @desc      Update a chamber for a doctor
+// @route     PUT /api/v1/doctors/:id/chambers/:chamberId
+// @access    Private
+exports.updateChamber = asyncHandler(async (req, res, next) => {
+  let doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  if (!doctor.chamber || doctor.chamber.length === 0) {
+    return next(
+      new ErrorResponse(`No chambers found for this doctor`, 404)
+    );
+  }
+
+  // Find the chamber index
+  const chamberIndex = doctor.chamber.findIndex(
+    c => c._id.toString() === req.params.chamberId
+  );
+  
+  if (chamberIndex === -1) {
+    return next(
+      new ErrorResponse(`Chamber with id ${req.params.chamberId} not found`, 404)
+    );
+  }
+
+  // Process chamber data
+  let chamberData = req.body;
+  
+  // Handle schedule if sent as string
+  if (req.body.schedule && typeof req.body.schedule === "string") {
+    try {
+      chamberData.schedule = JSON.parse(req.body.schedule);
+    } catch (err) {
+      return next(new ErrorResponse("Invalid schedule data format", 400));
+    }
+  }
+
+  // Update the chamber
+  doctor.chamber[chamberIndex] = {
+    ...doctor.chamber[chamberIndex].toObject(),
+    ...chamberData
+  };
+
+  // Save the doctor with the updated chamber
+  doctor = await doctor.save();
+
+  res.status(200).json({
+    success: true,
+    data: doctor.chamber[chamberIndex]
+  });
+});
+
+// @desc      Delete a chamber from a doctor
+// @route     DELETE /api/v1/doctors/:id/chambers/:chamberId
+// @access    Private
+exports.deleteChamber = asyncHandler(async (req, res, next) => {
+  let doctor = await Doctor.findById(req.params.id);
+
+  if (!doctor) {
+    return next(
+      new ErrorResponse(`Doctor not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  if (!doctor.chamber || doctor.chamber.length === 0) {
+    return next(
+      new ErrorResponse(`No chambers found for this doctor`, 404)
+    );
+  }
+
+  // Find the chamber index
+  const chamberIndex = doctor.chamber.findIndex(
+    c => c._id.toString() === req.params.chamberId
+  );
+  
+  if (chamberIndex === -1) {
+    return next(
+      new ErrorResponse(`Chamber with id ${req.params.chamberId} not found`, 404)
+    );
+  }
+
+  // Remove the chamber
+  doctor.chamber.splice(chamberIndex, 1);
+
+  // Save the doctor without the deleted chamber
+  doctor = await doctor.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Chamber removed successfully"
   });
 });

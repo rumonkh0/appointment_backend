@@ -6,70 +6,46 @@ const {
   createDoctor,
   deleteDoctor,
   getDoctorsBySpecialization,
-  updateAvailability,
+  getDoctorsByLocation,
   doctorPhotoUpload,
-  getAvailableSlots
+  getDoctorChambers,
+  getDoctorChamberByIndex
 } = require("../controllers/doctors");
 const reviewRouter = require("./reviews");
 
-// const User = require("../models/User");
-
 const router = express.Router({ mergeParams: true });
-
-// const advancedResults = require("../middleware/advancedResults");
-// const { protect, authorize } = require("../middleware/auth");
 
 // Re-route into other resource routers
 router.use("/:doctorId/reviews", reviewRouter);
 
 // Public routes
 router.route("/")
-  .get(getDoctors);
+  .get(getDoctors)
+  .post(createDoctor);
 
-router.route("/:id")
-  .get(getDoctor);
-
+// Routes that should be defined BEFORE parameterized routes to avoid conflicts
 router.route("/specialization/:specialization")
   .get(getDoctorsBySpecialization);
 
-// Get available time slots for a doctor
-router.route("/:id/available-slots")
-  .get(getAvailableSlots);
+router.route("/location/:location")
+  .get(getDoctorsByLocation);
 
-// Routes that require authentication
-// Protect all routes after this middleware
-// router.use(protect);
-
-// Create doctor route - Protected
-router.route("/")
-  .post(
-    // authorize("admin"), 
-    createDoctor
-  );
-
-// Edit/delete doctor routes - Protected
+// Get specific doctor and operations on it
 router.route("/:id")
-  .put(
-    // authorize("admin"), 
-    editDoctor
-  )
-  .delete(
-    // authorize("admin"), 
-    deleteDoctor
-  );
+  .get(getDoctor)
+  .put(editDoctor)
+  .delete(deleteDoctor);
 
-// Update doctor availability route - Protected
-router.route("/:id/availability")
-  .patch(
-    // authorize("admin"), 
-    updateAvailability
-  );
+// Get all chambers for a doctor
+router.route("/:id/chambers")
+  .get(getDoctorChambers);
 
-// Upload doctor photo route - Protected
+// Get specific chamber by index for a doctor
+router.route("/:id/chambers/:chamberIndex")
+  .get(getDoctorChamberByIndex);
+
+// Upload doctor photo route
 router.route("/:id/photo")
-  .put(
-    // authorize("admin"), 
-    doctorPhotoUpload
-  );
+  .put(doctorPhotoUpload);
 
 module.exports = router;
